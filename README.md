@@ -7,6 +7,9 @@ This is a simple implementation of KZG Commitment
 **This code is not audited and purely for research and education purposes only.**
 **DO NOT USE IT IN PRODUCTION ENVIRONMENT**
 
+[KZG Commitment Paper](https://www.iacr.org/archive/asiacrypt2010/6477178/6477178.pdf)
+[Dankrad Feist's blog on KZG Commitment](https://dankradfeist.de/ethereum/2020/06/16/kate-polynomial-commitments.html)
+
 ### Features 
 - **Galois Field Initialization**: Initializes a Galois Field with the BLS12-381 curve order.
 - **Lagrange Polynomial Interpolation**: Interpolates a set of points to a polynomial in the Galois Field.
