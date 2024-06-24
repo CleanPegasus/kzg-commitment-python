@@ -81,18 +81,20 @@ def verify_proof(commitment, points, proof, trusted_setup_g1, trusted_setup_g2):
   lhs = pairing(z_s, proof)
   i_s = evaluate_at_trusted_setup(points_polynomial, trusted_setup_g1)
   rhs = pairing(G2, add(commitment, neg(i_s)))
-  print(eq(lhs, rhs))
+  
   assert eq(lhs, rhs), "The proof is invalid"
+  print("isProofValid: ", eq(lhs, rhs))
 
 
 def main():
   vector = [10, 20, 36, 50, 90] # example vector
+  print("Commiting Vector: ", vector)
   polynomial = vector_to_polynomial(vector)
   trusted_setup_g1, trusted_setup_g2 = generate_trusted_setup(polynomial.degree)
   commitment = evaluate_at_trusted_setup(polynomial, trusted_setup_g1)
   points = [(0, 10), (1, 20)] # element 10 at index 0 and element 20 at index 1
   proof = generate_proof(polynomial, points, trusted_setup_g1)
-  print(proof)
+  print("Proof: ", proof)
   
   verify_proof(commitment, points, proof, trusted_setup_g1, trusted_setup_g2)
 
