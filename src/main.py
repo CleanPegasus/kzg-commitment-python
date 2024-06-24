@@ -4,15 +4,22 @@
 #
 
 import galois
-from py_ecc.bn128 import G1, G2, G12, add, multiply, curve_order, pairing, eq, neg, Z1
+from py_ecc.bls12_381 import G1, G2, G12, add, multiply, curve_order, pairing, eq, neg, Z1
 import random
 from functools import reduce
-from scipy.interpolate import lagrange
 
-print("Initializing Galois Field with BN128 curve order. This may take a while")
+print("Initializing Galois Field with BLS12_318 curve order. This may take a while.")
 GF = galois.GF(curve_order)
 print("Galois Field Initialized")
 
+# convert an integer to galois field
+def convert_int_to_gf(num):
+  if num < 0:
+    return -GF(-num)
+  else:
+    return GF(num)
+
+# interpolate the given points to return a galois polynomial
 def lagrange_interpolation_galois(xs, ys):
   assert len(xs) == len(ys), "Length mismatch"
   length = len(xs)
@@ -33,8 +40,8 @@ def lagrange_interpolation_galois(xs, ys):
 
 # lagrange interpolation to convert vector to a galois polynomial
 def vector_to_polynomial(vector):
-  xs = [GF(i) for i in range(len(vector))]
-  vector_gf = [GF(x) for x in vector]
+  xs = [convert_int_to_gf(i) for i in range(len(vector))]
+  vector_gf = [convert_int_to_gf(x) for x in vector]
   return lagrange_interpolation_galois(xs, vector_gf)
 
 # generate trusted setup
@@ -45,9 +52,10 @@ def generate_trusted_setup(degree):
 def evaluate_at_trusted_setup(polynomial, trusted_setup):
   return reduce(add, (multiply(point, int(coeff)) for point, coeff in zip(trusted_setup, polynomial.coeffs[::-1])), Z1)
 
+# generate a proof for a given point
 def generate_proof(polynomial, points, trusted_setup_g1):
-  x_s = [GF(x) for x, y in points]
-  y_s = [GF(y) for x, y in points]
+  x_s = [convert_int_to_gf(x) for x, y in points]
+  y_s = [convert_int_to_gf(y) for x, y in points]
   
   points_polynomial = lagrange_interpolation_galois(x_s, y_s)
   numerator = polynomial - points_polynomial
@@ -56,13 +64,14 @@ def generate_proof(polynomial, points, trusted_setup_g1):
     denominator = denominator * galois.Poly([GF(1), -x], GF)
   
   quotient, reminder = divmod(numerator, denominator)
-  assert reminder == 0
+  assert reminder == 0, "This is not a valid proof"
 
   return evaluate_at_trusted_setup(quotient, trusted_setup_g1)
 
-def verify_proof(commitment, points, proof, trusted_setup_g2, trusted_setup_g1):
-  x_s = [GF(x) for x, y in points]
-  y_s = [GF(y) for x, y in points]
+# 
+def verify_proof(commitment, points, proof, trusted_setup_g1, trusted_setup_g2):
+  x_s = [convert_int_to_gf(x) for x, y in points]
+  y_s = [convert_int_to_gf(y) for x, y in points]
   points_polynomial = lagrange_interpolation_galois(x_s, y_s)
   
   z = galois.Poly([1], GF)
@@ -71,23 +80,21 @@ def verify_proof(commitment, points, proof, trusted_setup_g2, trusted_setup_g1):
   z_s = evaluate_at_trusted_setup(z, trusted_setup_g2)
   lhs = pairing(z_s, proof)
   i_s = evaluate_at_trusted_setup(points_polynomial, trusted_setup_g1)
-  print("i_s", i_s)
   rhs = pairing(G2, add(commitment, neg(i_s)))
   print(eq(lhs, rhs))
   assert eq(lhs, rhs), "The proof is invalid"
 
 
-
 def main():
-
-  trusted_setup_g1, trusted_setup_g2 = generate_trusted_setup(polynomial.degree)
-  vector = [10, 20, 36, 50, 90]
+  vector = [10, 20, 36, 50, 90] # example vector
   polynomial = vector_to_polynomial(vector)
+  trusted_setup_g1, trusted_setup_g2 = generate_trusted_setup(polynomial.degree)
   commitment = evaluate_at_trusted_setup(polynomial, trusted_setup_g1)
-  points = [(0, 10), (1, 20)]
+  points = [(0, 10), (1, 20)] # element 10 at index 0 and element 20 at index 1
   proof = generate_proof(polynomial, points, trusted_setup_g1)
   print(proof)
   
-  verify_proof(commitment, [(0, 10), (1, 20)], proof, trusted_setup_g2, trusted_setup_g1)
+  verify_proof(commitment, points, proof, trusted_setup_g1, trusted_setup_g2)
 
-main()
+if __name__ == '__main__':
+  main()
