@@ -1,5 +1,2 @@
 galois
 py-ecc
-random
-scipy
-lagrange
